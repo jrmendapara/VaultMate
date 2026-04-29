@@ -1,0 +1,11 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 128 128" role="img" aria-label="VaultMate icon">
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#0ea5e9"/>
+      <stop offset="100%" stop-color="#2563eb"/>
+    </linearGradient>
+  </defs>
+  <rect x="8" y="8" width="112" height="112" rx="24" fill="url(#bg)"/>
+  <path d="M64 30c-13.8 0-25 11.2-25 25v9h-5c-3.3 0-6 2.7-6 6v24c0 3.3 2.7 6 6 6h60c3.3 0 6-2.7 6-6V70c0-3.3-2.7-6-6-6h-5v-9c0-13.8-11.2-25-25-25zm15 34H49v-9c0-8.3 6.7-15 15-15s15 6.7 15 15v9z" fill="#fff"/>
+  <circle cx="64" cy="81" r="6" fill="#1d4ed8"/>
+</svg>
