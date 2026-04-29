@@ -9,6 +9,8 @@ let editingId = null;        // ID of entry being edited
 let importBuffer = [];       // Rows parsed from Excel, pending confirmation
 let pendingConfirm = null;   // Resolve fn for confirm dialog
 
+const MASTER_PASSWORD_MIN_LENGTH = 8;
+
 // ── SESSION CACHE (for background autofill) ───────────────────────────────
 function syncSessionCache() {
   // Push plain-text credentials to session for background autofill
@@ -84,7 +86,7 @@ async function handleUnlock() {
 
   if (!meta) {
     // First time setup
-    if (pw.length < 6) { showLockError('Password must be at least 6 characters.'); return; }
+    if (pw.length < MASTER_PASSWORD_MIN_LENGTH) { showLockError(`Password must be at least ${MASTER_PASSWORD_MIN_LENGTH} characters.`); return; }
     const salt = await CryptoManager.generateSalt();
     const hash = await CryptoManager.hashPassword(pw, salt);
     await saveVaultMeta({
@@ -637,7 +639,7 @@ async function changeMasterPassword() {
   const p1 = document.getElementById('new-master-1').value;
   const p2 = document.getElementById('new-master-2').value;
 
-  if (p1.length < 6) { showStatus('master-status', 'Minimum 6 characters required.', 'error'); return; }
+  if (p1.length < MASTER_PASSWORD_MIN_LENGTH) { showStatus('master-status', `Minimum ${MASTER_PASSWORD_MIN_LENGTH} characters required.`, 'error'); return; }
   if (p1 !== p2) { showStatus('master-status', 'Passwords do not match.', 'error'); return; }
 
   const salt = await CryptoManager.generateSalt();

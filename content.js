@@ -181,18 +181,6 @@
     }
   });
 
-  // Detect password fields and show VaultMate hint on focus
-  document.addEventListener('focusin', (e) => {
-    if (e.target.type === 'password') {
-      const domain = getDomain();
-      chrome.runtime.sendMessage(
-        { action: 'HAS_CREDENTIALS_FOR_SITE', domain },
-        (resp) => {
-          if (resp?.hasCredentials && !document.getElementById('vaultmate-autofill-picker')) {
-            showAutofillPicker(resp.credentials);
-          }
-        }
-      );
-    }
-  }, true);
+  // Keep autofill picker manual-only (popup/context menu/keyboard shortcut).
+  // Do not auto-open when password fields receive focus.
 })();
