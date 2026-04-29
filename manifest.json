@@ -63,7 +63,7 @@
     }
   ],
   "oauth2": {
-    "client_id": "YOUR_GOOGLE_CLIENT_ID.apps.googleusercontent.com",
+    "client_id": "25327879712-s0s6k70v2doqgb2sl5ap9ajm8juhoata.apps.googleusercontent.com",
     "scopes": [
       "https://www.googleapis.com/auth/spreadsheets"
     ]
