@@ -202,15 +202,14 @@ async function copyToClipboard(text) {
 }
 
 // ── PASSWORD LIST ─────────────────────────────────────────────────────────
-function renderPasswordList(filter = '', catFilter = '') {
+function renderPasswordList(filter = '') {
   const list = document.getElementById('password-list');
   const emptyState = document.getElementById('empty-state');
   const q = filter.toLowerCase();
 
   let entries = vaultEntries.filter(e => {
-    const matchQ = !q || e.site.toLowerCase().includes(q) || e.username.toLowerCase().includes(q);
-    const matchCat = !catFilter || e.category === catFilter;
-    return matchQ && matchCat;
+    const haystack = `${e.site || ''} ${e.username || ''} ${e.clientName || ''}`.toLowerCase();
+    return !q || haystack.includes(q);
   });
 
   if (!entries.length) {
@@ -272,10 +271,7 @@ document.getElementById('password-list').addEventListener('click', async (e) => 
     if (ok) {
       vaultEntries = vaultEntries.filter(x => x.id !== id);
       await encryptAndSaveAll();
-      renderPasswordList(
-        document.getElementById('search-input').value,
-        document.getElementById('filter-cat').value
-      );
+      renderPasswordList(document.getElementById('search-input').value);
     }
   }
 
@@ -345,10 +341,7 @@ async function saveEntry() {
   await encryptAndSaveAll();
   syncSessionCache();
   closeModal();
-  renderPasswordList(
-    document.getElementById('search-input').value,
-    document.getElementById('filter-cat').value
-  );
+  renderPasswordList(document.getElementById('search-input').value);
 }
 
 // ── PASSWORD GENERATOR ────────────────────────────────────────────────────
@@ -702,12 +695,9 @@ document.addEventListener('DOMContentLoaded', async () => {
     });
   });
 
-  // Search & filter
+  // Search
   document.getElementById('search-input').addEventListener('input', (e) => {
-    renderPasswordList(e.target.value, document.getElementById('filter-cat').value);
-  });
-  document.getElementById('filter-cat').addEventListener('change', (e) => {
-    renderPasswordList(document.getElementById('search-input').value, e.target.value);
+    renderPasswordList(e.target.value);
   });
 
   // Modal
