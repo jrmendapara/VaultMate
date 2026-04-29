@@ -345,7 +345,7 @@ async function saveEntry() {
 }
 
 // ── PASSWORD GENERATOR ────────────────────────────────────────────────────
-function generatePassword(length = 16) {
+function generatePassword(length = 4) {
   const chars = 'abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789!@#$%^&*()_+-=[]{}';
   const arr = new Uint32Array(length);
   crypto.getRandomValues(arr);
