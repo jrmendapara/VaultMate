@@ -5,16 +5,11 @@ chrome.commands.onCommand.addListener(async (command) => {
     const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
     if (!tab?.id) return;
 
-    const session = await chrome.storage.session.get('vaultSession');
-    if (session?.vaultSession?.entries) {
-      const domain = extractDomain(tab.url || '');
-      const matches = session.vaultSession.entries.filter(e => matchesDomain(e, domain));
-      if (matches.length) {
-        chrome.tabs.sendMessage(tab.id, { action: 'SHOW_PICKER', credentials: matches });
-        return;
+    chrome.tabs.sendMessage(tab.id, { action: 'TRIGGER_AUTOFILL' }, () => {
+      if (chrome.runtime.lastError) {
+        chrome.action.openPopup().catch(() => {});
       }
-    }
-    chrome.action.openPopup().catch(() => {});
+    });
   }
 });
 
