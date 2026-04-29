@@ -35,7 +35,7 @@ const SheetsManager = (() => {
           data: [{
             startRow: 0, startColumn: 0,
             rowData: [{
-              values: ['ID', 'Site', 'URL', 'Username', 'Password', 'Category', 'Notes', 'Created', 'Updated']
+              values: ['ID', 'Client Name', 'Site', 'URL', 'Username', 'Password', 'Category', 'Notes', 'Created', 'Updated']
                 .map(v => ({ userEnteredValue: { stringValue: v } }))
             }]
           }]
@@ -49,28 +49,29 @@ const SheetsManager = (() => {
 
   async function readEntries(token, spreadsheetId) {
     const res = await fetch(
-      `${API_BASE}/${spreadsheetId}/values/Passwords!A2:I`,
+      `${API_BASE}/${spreadsheetId}/values/Passwords!A2:J`,
       { headers: { Authorization: `Bearer ${token}` } }
     );
     const data = await res.json();
     if (!res.ok) throw new Error(data.error?.message || 'Failed to read sheet');
     return (data.values || []).map(row => ({
       id: row[0] || '',
-      site: row[1] || '',
-      url: row[2] || '',
-      username: row[3] || '',
-      password: row[4] || '',  // stored encrypted
-      category: row[5] || 'other',
-      notes: row[6] || '',
-      createdAt: row[7] || '',
-      updatedAt: row[8] || ''
+      clientName: row[1] || '',
+      site: row[2] || '',
+      url: row[3] || '',
+      username: row[4] || '',
+      password: row[5] || '',  // stored encrypted
+      category: row[6] || 'other',
+      notes: row[7] || '',
+      createdAt: row[8] || '',
+      updatedAt: row[9] || ''
     }));
   }
 
   async function writeAllEntries(token, spreadsheetId, entries) {
     // Clear existing data first
     await fetch(
-      `${API_BASE}/${spreadsheetId}/values/Passwords!A2:I?valueInputOption=RAW`,
+      `${API_BASE}/${spreadsheetId}/values/Passwords!A2:J?valueInputOption=RAW`,
       {
         method: 'PUT',
         headers: {
@@ -78,10 +79,10 @@ const SheetsManager = (() => {
           'Content-Type': 'application/json'
         },
         body: JSON.stringify({
-          range: 'Passwords!A2:I',
+          range: 'Passwords!A2:J',
           majorDimension: 'ROWS',
           values: entries.map(e => [
-            e.id, e.site, e.url, e.username, e.password,
+            e.id, e.clientName || '', e.site, e.url, e.username, e.password,
             e.category, e.notes, e.createdAt, e.updatedAt
           ])
         })
