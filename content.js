@@ -11,16 +11,24 @@
     if (!pwFields.length) return null;
 
     const pwField = pwFields[0];
-    // Find closest username/email field
+    // Find closest username/user-id/email field before password field
     let userField = null;
     const allInputs = Array.from(document.querySelectorAll(
-      'input[type="text"], input[type="email"], input[name*="user"], input[name*="email"], input[id*="user"], input[id*="email"], input[autocomplete*="username"], input[autocomplete*="email"]'
+      'input:not([type="hidden"]):not([type="password"])'
     )).filter(el => el.offsetParent !== null);
 
-    if (allInputs.length) {
-      // Find the closest one before the password field
-      userField = allInputs[allInputs.length - 1];
-    }
+    const scored = allInputs.map((el, idx) => {
+      const key = `${(el.name || '')} ${(el.id || '')} ${(el.placeholder || '')} ${(el.autocomplete || '')}`.toLowerCase();
+      let score = 0;
+      if (/user|userid|user-id|login|email|account|member|customer|client/.test(key)) score += 5;
+      if (el.type === 'email' || (el.autocomplete || '').includes('username')) score += 4;
+      if (el.form && pwField.form && el.form === pwField.form) score += 2;
+      const pos = (el.compareDocumentPosition(pwField) & Node.DOCUMENT_POSITION_FOLLOWING) ? 1 : 0;
+      return { el, idx, score, beforePw: pos === 1 };
+    }).filter(x => x.beforePw);
+
+    scored.sort((a, b) => (b.score - a.score) || (b.idx - a.idx));
+    userField = scored[0]?.el || null;
 
     return { userField, pwField };
   }
@@ -66,13 +74,26 @@
     `;
     overlay.appendChild(header);
 
+
+    const searchWrap = document.createElement('div');
+    searchWrap.style.cssText = 'margin-bottom:10px;';
+    const searchInput = document.createElement('input');
+    searchInput.type = 'text';
+    searchInput.placeholder = 'Search saved logins…';
+    searchInput.style.cssText = 'width:100%;padding:7px 9px;border-radius:8px;border:1px solid #374151;background:#111827;color:#e5e7eb;font-size:12px;outline:none;';
+    searchWrap.appendChild(searchInput);
+    overlay.appendChild(searchWrap);
+
     if (!credentials.length) {
       const empty = document.createElement('div');
       empty.style.cssText = 'color:#9ca3af;padding:8px 0;text-align:center;';
       empty.textContent = 'No saved passwords for this site';
       overlay.appendChild(empty);
     } else {
-      credentials.forEach(cred => {
+      const renderItems = (filterText = '') => {
+        const q = String(filterText || '').toLowerCase();
+        overlay.querySelectorAll('.vm-cred-item').forEach(x => x.remove());
+        credentials.filter(cred => !q || `${cred.username} ${cred.site} ${cred.clientName || ''}`.toLowerCase().includes(q)).forEach(cred => {
         const item = document.createElement('div');
         item.style.cssText = `
           display:flex;align-items:center;gap:8px;padding:8px 10px;border-radius:8px;
@@ -92,8 +113,12 @@
           fillForm(cred.username, cred.password);
           removePicker();
         };
+        item.className = 'vm-cred-item';
         overlay.appendChild(item);
-      });
+        });
+      };
+      renderItems();
+      searchInput.addEventListener('input', (e) => renderItems(e.target.value));
     }
 
     document.body.appendChild(overlay);

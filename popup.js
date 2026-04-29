@@ -13,8 +13,8 @@ let pendingConfirm = null;   // Resolve fn for confirm dialog
 function syncSessionCache() {
   // Push plain-text credentials to session for background autofill
   // Note: session storage is cleared when browser closes
-  const slim = vaultEntries.map(({ id, site, url, username, password, category }) =>
-    ({ id, site, url, username, password, category })
+  const slim = vaultEntries.map(({ id, clientName, site, url, username, password, category }) =>
+    ({ id, clientName, site, url, username, password, category })
   );
   chrome.runtime.sendMessage({ action: 'VAULT_SESSION_UPDATE', entries: slim });
 }
@@ -226,7 +226,7 @@ function renderPasswordList(filter = '', catFilter = '') {
         ${escHtml(getFaviconLetter(e.site))}
       </div>
       <div class="pw-info">
-        <div class="pw-site">${escHtml(e.site)}</div>
+        <div class="pw-site">${escHtml(e.clientName ? e.clientName + ' • ' : '')}${escHtml(e.site)}</div>
         <div class="pw-username">${escHtml(e.username)}</div>
         <span class="pw-cat-badge">${escHtml(e.category || 'other')}</span>
       </div>
@@ -294,6 +294,7 @@ function openModal(entry = null) {
   editingId = entry?.id || null;
   document.getElementById('modal-title').textContent = entry ? 'Edit Password' : 'Add Password';
 
+  document.getElementById('f-client').value = entry?.clientName || '';
   document.getElementById('f-site').value = entry?.site || '';
   document.getElementById('f-url').value = entry?.url || '';
   document.getElementById('f-username').value = entry?.username || '';
@@ -324,6 +325,7 @@ async function saveEntry() {
   const password = document.getElementById('f-password').value;
   const category = document.getElementById('f-category').value;
   const notes = document.getElementById('f-notes').value.trim();
+  const clientName = document.getElementById('f-client').value.trim();
 
   if (!site || !username || !password) {
     alert('Site, Username, and Password are required.');
@@ -334,10 +336,10 @@ async function saveEntry() {
   if (editingId) {
     const idx = vaultEntries.findIndex(x => x.id === editingId);
     if (idx >= 0) {
-      vaultEntries[idx] = { ...vaultEntries[idx], site, url, username, password, category, notes, updatedAt: now };
+      vaultEntries[idx] = { ...vaultEntries[idx], clientName, site, url, username, password, category: (category || 'other').toLowerCase(), notes, updatedAt: now };
     }
   } else {
-    vaultEntries.push({ id: uuid(), site, url, username, password, category, notes, createdAt: now, updatedAt: now });
+    vaultEntries.push({ id: uuid(), clientName, site, url, username, password, category: (category || 'other').toLowerCase(), notes, createdAt: now, updatedAt: now });
   }
 
   await encryptAndSaveAll();
@@ -395,9 +397,9 @@ function showConfirm(message) {
 // ── EXCEL EXPORT ──────────────────────────────────────────────────────────
 function exportToExcel() {
   const rows = [
-    ['ID', 'Site', 'URL', 'Username', 'Password', 'Category', 'Notes', 'Created', 'Updated'],
+    ['ID', 'Client Name', 'Site', 'URL', 'Username', 'Password', 'Category', 'Notes', 'Created', 'Updated'],
     ...vaultEntries.map(e => [
-      e.id, e.site, e.url, e.username, e.password, e.category, e.notes,
+      e.id, e.clientName || '', e.site, e.url, e.username, e.password, e.category, e.notes,
       e.createdAt ? new Date(e.createdAt).toLocaleDateString() : '',
       e.updatedAt ? new Date(e.updatedAt).toLocaleDateString() : ''
     ])
@@ -407,7 +409,7 @@ function exportToExcel() {
 
   // Column widths
   ws['!cols'] = [
-    {wch:10},{wch:20},{wch:35},{wch:25},{wch:25},{wch:12},{wch:30},{wch:12},{wch:12}
+    {wch:10},{wch:20},{wch:20},{wch:35},{wch:25},{wch:25},{wch:12},{wch:30},{wch:12},{wch:12}
   ];
 
   const wb = XLSX.utils.book_new();
@@ -417,12 +419,12 @@ function exportToExcel() {
 
 function downloadTemplate() {
   const rows = [
-    ['Site', 'URL', 'Username', 'Password', 'Category', 'Notes'],
-    ['Google', 'https://accounts.google.com', 'user@gmail.com', 'yourpassword', 'email', ''],
-    ['Facebook', 'https://facebook.com', 'user@email.com', 'yourpassword', 'social', ''],
+    ['Client Name', 'Site', 'URL', 'Username', 'Password', 'Category', 'Notes'],
+    ['Personal', 'Google', 'https://accounts.google.com', 'user@gmail.com', 'yourpassword', 'email', ''],
+    ['Work', 'Facebook', 'https://facebook.com', 'user@email.com', 'yourpassword', 'social', ''],
   ];
   const ws = XLSX.utils.aoa_to_sheet(rows);
-  ws['!cols'] = [{wch:20},{wch:35},{wch:25},{wch:25},{wch:12},{wch:30}];
+  ws['!cols'] = [{wch:20},{wch:20},{wch:35},{wch:25},{wch:25},{wch:12},{wch:30}];
   const wb = XLSX.utils.book_new();
   XLSX.utils.book_append_sheet(wb, ws, 'Template');
   XLSX.writeFile(wb, 'VaultMate_Import_Template.xlsx');
@@ -448,6 +450,7 @@ function handleFileImport(e) {
     const header = rows[0].map(h => String(h).toLowerCase().trim());
     const getIdx = (...names) => names.map(n => header.indexOf(n)).find(i => i >= 0) ?? -1;
 
+    const clientIdx = getIdx('client name', 'client', 'account');
     const siteIdx = getIdx('site', 'app', 'name');
     const urlIdx = getIdx('url', 'website', 'link');
     const userIdx = getIdx('username', 'user', 'email', 'login');
@@ -464,6 +467,7 @@ function handleFileImport(e) {
       .filter(r => r[siteIdx] || r[userIdx])
       .map(r => ({
         id: uuid(),
+        clientName: String(clientIdx >= 0 ? r[clientIdx] : '').trim(),
         site: String(r[siteIdx] || '').trim(),
         url: String(urlIdx >= 0 ? r[urlIdx] : '').trim(),
         username: String(r[userIdx] || '').trim(),
@@ -478,7 +482,7 @@ function handleFileImport(e) {
     preview.innerHTML = `
       <strong>${importBuffer.length} passwords found</strong><br>
       <span style="color:var(--text-muted)">Preview (first 3):</span><br>
-      ${importBuffer.slice(0, 3).map(e => `• ${escHtml(e.site)} — ${escHtml(e.username)}`).join('<br>')}
+      ${importBuffer.slice(0, 3).map(e => `• ${escHtml(e.clientName ? e.clientName + ' / ' : '')}${escHtml(e.site)} — ${escHtml(e.username)}`).join('<br>')}
       ${importBuffer.length > 3 ? `<br><span style="color:var(--text-dim)">…and ${importBuffer.length - 3} more</span>` : ''}
     `;
     preview.classList.remove('hidden');
