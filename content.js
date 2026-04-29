@@ -94,6 +94,7 @@
         const q = String(filterText || '').toLowerCase();
         overlay.querySelectorAll('.vm-cred-item').forEach(x => x.remove());
         credentials.filter(cred => !q || `${cred.username} ${cred.site} ${cred.clientName || ''}`.toLowerCase().includes(q)).forEach(cred => {
+        const displayName = (cred.clientName || '').trim() || cred.username;
         const item = document.createElement('div');
         item.style.cssText = `
           display:flex;align-items:center;gap:8px;padding:8px 10px;border-radius:8px;
@@ -102,7 +103,7 @@
         `;
         item.innerHTML = `
           <div style="flex:1;overflow:hidden;">
-            <div style="font-weight:500;color:#e2e8f0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${escHtml(cred.username)}</div>
+            <div style="font-weight:500;color:#e2e8f0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${escHtml(displayName)}</div>
             <div style="color:#6b7280;font-size:11px;">${escHtml(cred.site)}</div>
           </div>
           <div style="color:#6366f1;font-size:11px;white-space:nowrap;">Click to fill</div>
