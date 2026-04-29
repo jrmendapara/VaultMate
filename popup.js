@@ -9,7 +9,7 @@ let editingId = null;        // ID of entry being edited
 let importBuffer = [];       // Rows parsed from Excel, pending confirmation
 let pendingConfirm = null;   // Resolve fn for confirm dialog
 
-const MASTER_PASSWORD_MIN_LENGTH = 8;
+const MASTER_PASSWORD_MIN_LENGTH = 4;
 
 // ── SESSION CACHE (for background autofill) ───────────────────────────────
 function syncSessionCache() {
@@ -360,7 +360,7 @@ function updatePwStrength(pw) {
   if (!pw) { bar.style.width = '0'; label.textContent = ''; return; }
 
   let score = 0;
-  if (pw.length >= 8) score++;
+  if (pw.length >= 4) score++;
   if (pw.length >= 12) score++;
   if (/[A-Z]/.test(pw)) score++;
   if (/[0-9]/.test(pw)) score++;
