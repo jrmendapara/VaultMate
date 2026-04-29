@@ -395,6 +395,25 @@ function showConfirm(message) {
 }
 
 // ── EXCEL EXPORT ──────────────────────────────────────────────────────────
+
+function isXlsxAvailable() {
+  return typeof XLSX !== 'undefined';
+}
+
+function downloadCsv(filename, rows) {
+  const csv = rows
+    .map(r => r.map(v => `"${String(v ?? '').replace(/"/g, '""')}"`).join(','))
+    .join('\n');
+  const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+  const link = document.createElement('a');
+  link.href = URL.createObjectURL(blob);
+  link.download = filename;
+  document.body.appendChild(link);
+  link.click();
+  link.remove();
+  URL.revokeObjectURL(link.href);
+}
+
 function exportToExcel() {
   const rows = [
     ['ID', 'Client Name', 'Site', 'URL', 'Username', 'Password', 'Category', 'Notes', 'Created', 'Updated'],
@@ -404,6 +423,12 @@ function exportToExcel() {
       e.updatedAt ? new Date(e.updatedAt).toLocaleDateString() : ''
     ])
   ];
+
+  if (!isXlsxAvailable()) {
+    downloadCsv(`VaultMate_Export_${new Date().toISOString().slice(0,10)}.csv`, rows);
+    showStatus('import-status', '⚠️ Excel library missing. Downloaded CSV instead.', 'info');
+    return;
+  }
 
   const ws = XLSX.utils.aoa_to_sheet(rows);
 
@@ -423,6 +448,12 @@ function downloadTemplate() {
     ['Personal', 'Google', 'https://accounts.google.com', 'user@gmail.com', 'yourpassword', 'email', ''],
     ['Work', 'Facebook', 'https://facebook.com', 'user@email.com', 'yourpassword', 'social', ''],
   ];
+  if (!isXlsxAvailable()) {
+    downloadCsv('VaultMate_Import_Template.csv', rows);
+    showStatus('import-status', '⚠️ Excel library missing. Downloaded CSV template instead.', 'info');
+    return;
+  }
+
   const ws = XLSX.utils.aoa_to_sheet(rows);
   ws['!cols'] = [{wch:20},{wch:20},{wch:35},{wch:25},{wch:25},{wch:12},{wch:30}];
   const wb = XLSX.utils.book_new();
@@ -437,9 +468,22 @@ function handleFileImport(e) {
 
   const reader = new FileReader();
   reader.onload = (ev) => {
-    const wb = XLSX.read(ev.target.result, { type: 'binary' });
-    const ws = wb.Sheets[wb.SheetNames[0]];
-    const rows = XLSX.utils.sheet_to_json(ws, { header: 1, defval: '' });
+    if (!isXlsxAvailable() && !file.name.toLowerCase().endsWith('.csv')) {
+      showStatus('import-status', 'Excel parser not available. Please import CSV or include lib/xlsx.min.js', 'error');
+      return;
+    }
+
+    let rows;
+    if (file.name.toLowerCase().endsWith('.csv') || !isXlsxAvailable()) {
+      rows = String(ev.target.result || '')
+        .split(/\r?\n/)
+        .filter(Boolean)
+        .map(line => line.split(',').map(cell => cell.replace(/^"|"$/g, '').replace(/""/g, '"').trim()));
+    } else {
+      const wb = XLSX.read(ev.target.result, { type: 'binary' });
+      const ws = wb.Sheets[wb.SheetNames[0]];
+      rows = XLSX.utils.sheet_to_json(ws, { header: 1, defval: '' });
+    }
 
     if (rows.length < 2) {
       showStatus('import-status', 'File has no data rows.', 'error');
@@ -489,7 +533,8 @@ function handleFileImport(e) {
     document.getElementById('import-confirm-btn').classList.remove('hidden');
   };
 
-  reader.readAsBinaryString(file);
+  if (file.name.toLowerCase().endsWith('.csv') || !isXlsxAvailable()) reader.readAsText(file);
+  else reader.readAsBinaryString(file);
 }
 
 async function confirmImport() {
